@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Blog</title>
+    <meta http-equiv="content-language" content="en" />
+    <meta name="viewport" content="width=device-width" />
+    <link href="css/style.css" rel="stylesheet" type="text/css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+    <script>
+      $(document).ready(function(){
+        $('#navbar').load("header.html", function(){
+          $("#include").removeClass("hide");
+        })
+      });
+    </script>
+    <script src="js/image.js"></script>
+  </head>
+  <body>
+    <div id="navbar"></div>
+    <section> 
+      <div class="team-section">
+        <div class="inner-width">
+          <h1>Posts</h1>
+          <a href='home.html' class="btn2">Back to home</a><br>
+          
+          <div class="pers">
+            <div class="pe">
+              No posts are posted...
+             </div>
+          </div>
+          <div class="pers1">
+            <div class="pe1">
+              No posts are posted by you...
+             </div>
+          </div>
+          <div class="update"></div>
+        </div>
+      </div>
+    </section>
+    <div class="footer">
+      <footer-info></footer-info>
+    </div>
+    <script src="js/check.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/5.9.2/firebase.js"></script>
+    <script>
+      // Initialize Firebase
+      var config = {
+        apiKey: "AIzaSyBAbxGA7GDKM30-ET3PrOLufj9s3pW6obE",
+        authDomain: "second-assignment-debf4.firebaseapp.com",
+        databaseURL: "https://second-assignment-debf4.firebaseio.com",
+        projectId: "second-assignment-debf4",
+        storageBucket: "second-assignment-debf4.appspot.com",
+        messagingSenderId: "384669237406"
+      };
+      firebase.initializeApp(config);
+      var postsRef = firebase.database().ref().child("posts");
+      var Storage = firebase.storage();
+      var StorageRef = Storage.ref();
+      $('.pe').empty();
+      postsRef.orderByChild('category').equalTo('education').on("value", function(snapshot) {
+        console.log(snapshot.val());
+        snapshot.forEach(function(data) {
+          var TangRef = StorageRef.child(data.val().heading);
+          TangRef.getDownloadURL().then(function(url) {
+            var Test = url;
+            document.querySelector('img').src = Test;
+          });
+          $('.pe').append("<img src="+ this.Test +"class='post-data-img' height='auto' width:'auto'>");
+          $('.pe').append("<div class='p-name'>"+data.key+"</div>");
+          $('.pe').append("<div class='p-des'>"+
+            "<p>Heading: <span class='post-data-heading'>"+data.val().heading+"</span></p>"+
+            "<p>Author Name: <span class='post-data-author_name'>"+data.val().author_name+"</span></p>"+
+            "<p>Description: <span class='post-data-description'>"+data.val().description+"</span></p>"+
+            "<br><br></div>"
+          );
+        })
+      }) 
+      firebase.auth().onAuthStateChanged(user => {
+          if(user) {
+            console.log('logged In');  
+            var User = firebase.auth().currentUser.uid;          
+            console.log("currentuser"+User);
+            var messagesRef = firebase.database().ref().child("users/"+User+"/posts");
+            var storage = firebase.storage();
+            var storageRef = storage.ref();
+            $('.pe1').empty();
+            $('.pe1').append("<h1>Your Posts</h1><br><br>")
+            messagesRef.orderByChild('category').equalTo('education').on("value", function(snapshot) {
+              console.log(snapshot.val());
+              snapshot.forEach(function(data) {
+                var tangRef = storageRef.child(data.val().heading);
+                tangRef.getDownloadURL().then(function(url) {
+                  var test = url;
+                  document.querySelector('img').src = test;
+                });
+                $('.pe1').append("<img src="+ this.test +"class='post-data-img' height='auto' width:'auto'>");
+                $('.pe1').append("<div class='p-name'>"+data.key+"</div>");
+                $('.pe1').append("<div class='p-des'>"+
+                  "<p>Heading: <span class='post-data-heading'>"+data.val().heading+"</span></p>"+
+                  "<p>Author Name: <span class='post-data-author_name'>"+data.val().author_name+"</span></p>"+
+                  "<p>Description: <span class='post-data-description'>"+data.val().description+"</span></p>"+
+                  "<button type='button' class='updatebtn' update-id='"+data.val().id+"'>Update</button><edit-symbol img='images/edit.png'></edit-symbol>"+
+                  "<button type='button' class='delete' id='"+data.val().id+"'>Delete Me</button>"+
+                  "<br><br></div>"
+                );
+              })
+            }) 
+          }
+      })
+      function submitForm() {
+        var date_created = firebase.database.ServerValue.TIMESTAMP;
+        var user = firebase.auth().currentUser.uid;
+        data_to_save = {
+          id: $("#update-id").val(),
+          owner: user,
+          heading: $("#edit-heading").val(),
+          category: $("#edit-category").val(),
+          author_name: $("#edit-author_name").val(),
+          description: $("#edit-description").val(),
+          date_created: date_created
+        };
+        firebase.database().ref().child("posts/"+data_to_save.id).update(data_to_save);
+        firebase.database().ref().child("users/"+user+"/posts/"+data_to_save.id).update(data_to_save);    
+        $('.update').addClass('hide');
+      }
+      
+      $(document).ready(function() {
+        firebase.auth().onAuthStateChanged(user => {
+          if(user) {
+            var userId = firebase.auth().currentUser.uid;
+            console.log('logged In');    
+          }
+          else {
+            $('#include #btnlogout').addClass('hide'); 
+            $('.updatebtn').addClass('hide');
+            $('.delete').addClass('hide');
+            console.log('Logout');
+          }
+        });
+        $(document).on("click",".delete",function(){
+ 	  var postId = $(this).attr('id');
+          var userId = firebase.auth().currentUser.uid;
+          firebase.database().ref().child("posts/"+postId).remove();
+          firebase.database().ref().child("users/"+userId+"/posts/"+postId).remove(); 
+          window.location.reload();
+        });
+
+        $(document).on('click','#include #btnlogout',function(){
+          firebase.auth().signOut();
+          window.location = 'index.html';
+        });
+      });
+      $(document).on("click",".updatebtn",function() {
+        $('.update').append(
+          "<h1>Edit Your Post</h1>"+
+          "<form id='postForm'>"+"<input type='hidden' id='update-id'>"+
+          "<div class='inner'>"+
+          "<label>Heading</label>"+
+          " <input type='text' name='heading' id='edit-heading' /><br>"+ 
+          "</div><div class='inner'>"+
+          "<label>Category</label>"+
+          "<select name='category' id='edit-category'>"+
+          "<option value='technology'>Technology</option>"+
+          "<option value='science'>Science</option>"+
+          "<option value='entertainment'>Entertainment</option>"+
+          "<option value='education'>Education</option>"+
+          "<option value='arts'>Arts</option>"+
+          "</select><br>"+
+          "</div>"+
+          "<div class='inner'>"+
+          "<label>Author Name</label>"+
+          "<input type='text' name='author_name' id='edit-author_name' /><br>"+
+          "</div><div class='inner'>"+
+          "<label>Post Description</label><br>"+
+          "<textarea name='description' id='edit-description'></textarea><br>"+
+          "</div>"+
+          "<button type='submit' class='edit-btn' onclick='submitForm()'>Update Post</button>"+
+          "</form>"
+        );   
+        var updateid = $(this).attr('update-id');
+        console.log(updateid);
+        $("#update-id").val(updateid);
+        var heading = $(this).parent().find(".post-data-heading").text();
+        $("#edit-heading").val(heading);
+        var category = 'education';     
+        $("#edit-category").val(category);     
+        var author_name = $(this).parent().find(".post-data-author_name").text();
+        $("#edit-author_name").val(author_name);   
+        var description = $(this).parent().find(".post-data-description").text();      
+      });
+    </script>
+
+  </body>
+</html> 
