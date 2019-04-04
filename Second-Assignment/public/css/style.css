@@ -313,7 +313,7 @@ nav ul {
   margin-top: 8px;
   width: 100px;
 }
-.updatebtn, .delete{
+.updatebtn, .delete, .edit-btn{
   background: #9b59b6;
   padding: 10px 0;
   color: white;
